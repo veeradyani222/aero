@@ -7,7 +7,12 @@ const nextConfig = {
   //   unoptimized: true
   // },
   
-  // Configure webpack for Windows development
+  // Turbopack configuration for Next.js 16
+  turbopack: {
+    resolveAlias: {},
+  },
+  
+  // Configure webpack for Windows development (used with webpack flag)
   webpack: (config, { dev, isServer }) => {
     if (dev && !isServer) {
       // Reduce file system operations on Windows
@@ -33,13 +38,6 @@ const nextConfig = {
   
   // Disable x-powered-by header
   poweredByHeader: false,
-  
-  // ESLint configuration for deployment
-  eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
-    ignoreDuringBuilds: true,
-  },
   
   // TypeScript configuration for deployment
   typescript: {
