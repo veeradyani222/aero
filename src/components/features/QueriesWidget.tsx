@@ -123,9 +123,5 @@ export default function QueriesWidget({
     </div>
   )
 }
-      </div >
-    </div >
-  );
-} 
 
 

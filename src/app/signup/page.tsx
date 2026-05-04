@@ -85,6 +85,7 @@ function Page(): React.ReactElement {
     router.push( "/dashboard/add-brand/step-1" );
   }
 
+  return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-black font-sans">
       <div className="w-full max-w-sm px-6">
         <div className="text-center mb-10">
