@@ -17,7 +17,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@tailwindcss/postcss": "^4.2.4",
     "@tanstack/react-query": "^5.83.0",
-    "@tanstack/react-query-devtools": "^5.90.2",
+    "@tanstack/react-query-devtools": "^5.100.9",
     "@types/jsdom": "^21.1.7",
     "@types/node": "22.15.29",
     "@types/react": "19.1.6",
