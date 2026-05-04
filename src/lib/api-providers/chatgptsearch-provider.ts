@@ -18,13 +18,14 @@ export class ChatGPTSearchProvider extends BaseAPIProvider {
   async execute(request: ChatGPTSearchRequest): Promise<APIResponse> {
     const startTime = Date.now();
     const requestId = `chatgptsearch-${Date.now()}`;
-    const modelCandidates = (
-      process.env.CHATGPT_SEARCH_MODELS ||
-      'gpt-4.1,gpt-4.1-mini,gpt-4o-search-preview-2025-03-11,gpt-4o-mini-search-preview-2025-03-11'
-    )
-      .split(',')
-      .map((model) => model.trim())
-      .filter(Boolean);
+    const searchModelCandidates = this.getModelCandidates(
+      process.env.CHATGPT_SEARCH_MODELS,
+      ['gpt-4.1-mini', 'gpt-4.1', 'gpt-4o-mini-search-preview-2025-03-11', 'gpt-4o-search-preview-2025-03-11']
+    );
+    const noSearchModelCandidates = this.getModelCandidates(
+      process.env.CHATGPT_FALLBACK_MODELS,
+      ['gpt-4.1-mini', 'gpt-4.1']
+    );
 
     try {
       if (!this.validateRequest(request)) {
@@ -36,8 +37,9 @@ export class ChatGPTSearchProvider extends BaseAPIProvider {
       let response: any = null;
       let modelUsed = '';
       let lastError: Error | null = null;
+      let usedWebSearch = false;
 
-      for (const model of modelCandidates) {
+      for (const model of searchModelCandidates) {
         try {
           response = await this.retryRequest(async () => {
             return await this.client.responses.create({
@@ -48,6 +50,7 @@ export class ChatGPTSearchProvider extends BaseAPIProvider {
             });
           });
           modelUsed = model;
+          usedWebSearch = this.didUseWebSearch(response);
           break;
         } catch (error) {
           lastError = error as Error;
@@ -55,6 +58,29 @@ export class ChatGPTSearchProvider extends BaseAPIProvider {
             model,
             error: lastError.message,
           });
+        }
+      }
+
+      if (!response) {
+        for (const model of noSearchModelCandidates) {
+          try {
+            response = await this.retryRequest(async () => {
+              return await this.client.responses.create({
+                model,
+                input: request.input,
+                temperature: request.temperature,
+              });
+            });
+            modelUsed = model;
+            usedWebSearch = false;
+            break;
+          } catch (error) {
+            lastError = error as Error;
+            console.warn('ChatGPT no-search fallback model failed, trying next if available:', {
+              model,
+              error: lastError.message,
+            });
+          }
         }
       }
 
@@ -78,8 +104,11 @@ export class ChatGPTSearchProvider extends BaseAPIProvider {
       });
 
       const transformedData = this.transformResponse(response);
-      transformedData.modelFallbacksTried = modelCandidates;
+      transformedData.modelFallbacksTried = [...searchModelCandidates, ...noSearchModelCandidates];
       transformedData.modelUsed = response.model || modelUsed;
+      transformedData.webSearchUsed = usedWebSearch;
+      transformedData.searchEnabled = usedWebSearch;
+      transformedData.tools = usedWebSearch ? ['web_search_preview'] : [];
       
       // Console log the transformed data
       console.log('✨ ChatGPT Search Transformed Data:', JSON.stringify(transformedData, null, 2));
@@ -131,14 +160,15 @@ export class ChatGPTSearchProvider extends BaseAPIProvider {
 
   transformResponse(rawResponse: any): any {
     const annotations = this.extractAnnotations(rawResponse);
+    const usedWebSearch = this.didUseWebSearch(rawResponse);
 
     return {
       content: rawResponse.output_text || '',
-      model: rawResponse.model || 'gpt-4.1',
+      model: rawResponse.model || 'gpt-4.1-mini',
       usage: rawResponse.usage,
-      searchEnabled: true,
-      webSearchUsed: true,
-      tools: ['web_search_preview'],
+      searchEnabled: usedWebSearch,
+      webSearchUsed: usedWebSearch,
+      tools: usedWebSearch ? ['web_search_preview'] : [],
       // Include annotations (sources, citations, etc.)
       annotations,
       annotationsCount: annotations.length,
@@ -152,6 +182,24 @@ export class ChatGPTSearchProvider extends BaseAPIProvider {
       // Raw response for debugging (optional)
       rawResponse: rawResponse
     };
+  }
+
+  private getModelCandidates(envValue: string | undefined, defaults: string[]): string[] {
+    const configuredModels = (envValue || '')
+      .split(',')
+      .map((model) => this.normalizeModelName(model))
+      .filter(Boolean);
+
+    return Array.from(new Set([...(configuredModels.length > 0 ? configuredModels : defaults), ...defaults]));
+  }
+
+  private normalizeModelName(model: string | undefined): string {
+    return (model || '').trim().replace(/\s+/g, '-');
+  }
+
+  private didUseWebSearch(rawResponse: any): boolean {
+    const output = Array.isArray(rawResponse?.output) ? rawResponse.output : [];
+    return output.some((item: any) => item?.type === 'web_search_call');
   }
 
   private extractAnnotations(rawResponse: any): any[] {

@@ -84,27 +84,3 @@ export function matchCompetitorsInText(
   return results;
 }
 
-// --- Example usage/test cases ---
-if (require.main === module) {
-  const competitors: Competitor[] = [
-    { name: 'OpenAI', domain: 'openai.com', aliases: ['Open AI', 'OpenAI Inc.'] },
-    { name: 'Anthropic', domain: 'anthropic.com', aliases: ['Claude', 'Anthropic AI'] },
-    { name: 'Google', domain: 'google.com', aliases: ['Google AI', 'Alphabet'] },
-  ];
-  const queries = [
-    'I prefer OpenAI for LLMs',
-    'Claude is a great product by Anthropic',
-    'I use openai.com and google.com for research',
-    'Alphabet is the parent of Google',
-    'I like Open AI and Anthropic AI',
-    'OpeanAI is cool', // typo for fuzzy
-  ];
-  for (const q of queries) {
-    const matches = matchCompetitorsInText(q, competitors);
-    console.log(`Query: ${q}`);
-    for (const m of matches) {
-      console.log(`  Matched: ${m.competitor.name} via ${m.matchType} (${m.matchedValue})${m.score !== undefined ? ' [score: ' + m.score + ']' : ''}`);
-    }
-  }
-} 
-

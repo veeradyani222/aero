@@ -150,24 +150,6 @@ export default function QueriesOverview({
     return queryResults.find(result => result.query === query);
   };
 
-  // Compute if we should auto-start processing
-  const queriesWithoutResults = queries.filter(q => !findQueryResult(q.query));
-  const shouldAutoStart = queriesWithoutResults.length >= 4 && !isProcessingActive;
-
-  // Automatically trigger Process Queries if more than 5 queries have no results
-  // useEffect(() => {
-  //   if (!brand || !showProcessButton) return;
-  //   const queriesWithoutResults = queries.filter(q => !findQueryResult(q.query));
-  //   if (queriesWithoutResults.length >= 1 && processButtonRef.current && !isProcessingActive) {
-  //     // Programmatically trigger the button's click or handler
-  //     if (typeof processButtonRef.current.click === 'function') {
-  //       processButtonRef.current.click();
-  //     } else if (typeof processButtonRef.current === 'function') {
-  //       processButtonRef.current();
-  //     }
-  //   }
-  // }, [brand, queries, queryResults, showProcessButton, isProcessingActive]); // Removed as per edit hint
-
   // Filter queries based on search and category
   const filteredQueries = queries.filter(query => {
     const matchesSearch = query.query.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -346,7 +328,6 @@ export default function QueriesOverview({
                 brandId={brand.id}
                 variant="ghost"
                 size="sm"
-                autoStart={shouldAutoStart}
                 onStart={() => {
                   // Set all queries as potentially processing when processing starts
                   setIsProcessingActive(true);

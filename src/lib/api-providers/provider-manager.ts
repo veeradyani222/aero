@@ -316,14 +316,20 @@ export class ProviderManager {
       ? `${request.prompt}\n\nContext and instructions:\n${request.metadata.context}`
       : request.prompt;
 
-    // Add instruction to limit web searches to reduce costs
-    const contextualPrompt = `${basePrompt}\n\nIMPORTANT: Please perform a maximum of 2 web searches to limit costs.`;
+    const contextualPrompt = `${basePrompt}
+
+IMPORTANT COST RULES:
+- Prefer answering from the supplied query and context first.
+- Use web search only when a fresh or verifiable external fact is truly needed.
+- If web search is needed, keep it to a single targeted search.
+- Do not browse broadly, do not fan out across many sources, and do not repeat similar searches.
+- If the answer can be given without search, skip search entirely and say so only if relevant.`;
 
     switch (providerName) {
       case 'chatgptsearch':
         return {
           input: contextualPrompt,
-          model: 'gpt-4.1',
+          model: 'gpt-4.1-mini',
           temperature: 0.7,
         };
 

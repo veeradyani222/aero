@@ -48,7 +48,7 @@ export const CompanyInfoSchema = z.object({
 export type CompanyInfo = z.infer<typeof CompanyInfoSchema>;
 
 const OPENAI_API_KEY = process.env.CHATGPT_SEARCH_API_KEY || process.env.OPENAI_API_KEY;
-const OPENAI_MODEL = process.env.OPENAI_COMPANY_INFO_MODEL || 'gpt-4.1';
+const OPENAI_MODEL = normalizeModelName(process.env.OPENAI_COMPANY_INFO_MODEL) || 'gpt-4.1-mini';
 
 export async function getCompanyInfo(input: CompanyInfoInput): Promise<CompanyInfo> {
   const domain = cleanDomain(input.domain);
@@ -119,12 +119,17 @@ You MUST return a valid JSON object with all of the following fields. If you can
 
 Instructions:
 - Prioritize clarity, conciseness, and factual accuracy.
-- Use top search results and the company's own site to gather data.
+- Prefer the company's own site first. Only use external web search if the website itself does not provide enough information.
+- If external search is needed, keep it to a single targeted search.
 - For competitors: Identify companies that offer the SAME or SIMILAR products/services as listed. Include both direct competitors (same target market) and companies that provide alternative solutions to the same customer problems.
 - Consider businesses that target the same customer segments, industries, or solve similar pain points.
 - Do NOT infer or speculate beyond what is clearly stated in the source content.
 - Return ONLY the JSON object, no additional text or formatting.
 - Ensure the JSON is valid and properly formatted.`;
+}
+
+function normalizeModelName(model: string | undefined): string {
+  return (model || '').trim().replace(/\s+/g, '-');
 }
 
 async function callOpenAI(prompt: string): Promise<string> {
