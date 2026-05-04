@@ -14,6 +14,9 @@ const inter = Inter( { subsets: [ 'latin' ] } );
 export const metadata = {
   title: 'Aero Dashboard',
   description: 'Intelligent brand analysis and query optimization platform',
+  icons: {
+    icon: '/icon.png',
+  },
 };
 
 // Root layout component for the application
