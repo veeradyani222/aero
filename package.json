@@ -41,6 +41,6 @@
     "recharts": "^3.8.1",
     "tailwindcss": "^4.1.16",
     "typescript": "6.0.3",
-    "zod": "^4.1.12"
+    "zod": "^4.4.3"
   }
 }
