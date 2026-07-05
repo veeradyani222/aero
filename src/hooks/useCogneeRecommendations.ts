@@ -6,7 +6,6 @@ import type { RecommendationData } from '@/firebase/firestore/dashboardData';
 interface UseCogneeRecommendationsOptions {
   brandId?: string | null;
   brandName?: string | null;
-  /** Only fetch when Firestore has no recommendations (preserves existing behavior). */
   enabled?: boolean;
 }
 
@@ -17,11 +16,6 @@ interface UseCogneeRecommendationsReturn {
   source: 'cognee' | 'none';
 }
 
-/**
- * Optional Cognee-powered recommendations.
- * Returns empty when Cognee is off, loading, or has no data —
- * dashboard fallbacks stay unchanged.
- */
 export function useCogneeRecommendations({
   brandId,
   brandName,

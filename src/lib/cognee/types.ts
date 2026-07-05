@@ -1,8 +1,3 @@
-/**
- * Cognee Cloud integration types.
- * @see https://docs.cognee.ai/api-reference/introduction
- */
-
 export type CogneeSearchType =
   | 'GRAPH_COMPLETION'
   | 'RAG_COMPLETION'

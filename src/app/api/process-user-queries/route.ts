@@ -172,7 +172,6 @@ export async function POST(request: NextRequest) {
       totalErrors: errors.length,
     };
 
-    // Optional Cognee sync — fire-and-forget, never blocks or breaks the response
     if (isCogneeConfigured()) {
       void syncBrandContextToCognee({
         brandId: brandData.id,

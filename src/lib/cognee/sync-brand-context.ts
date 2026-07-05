@@ -63,10 +63,6 @@ export function buildBrandContextDocument(payload: CogneeSyncPayload): string {
   return lines.join('\n');
 }
 
-/**
- * Push brand context into Cognee. No-op when Cognee is not configured.
- * Always safe to call — failures are logged and swallowed.
- */
 export async function syncBrandContextToCognee(payload: CogneeSyncPayload): Promise<boolean> {
   if (!isCogneeConfigured()) return false;
 
@@ -76,7 +72,7 @@ export async function syncBrandContextToCognee(payload: CogneeSyncPayload): Prom
   try {
     return await cogneeRemember(datasetName, document);
   } catch (error) {
-    console.warn('[Cognee] Brand sync failed (non-blocking):', error);
+    console.warn('[Cognee] Brand sync failed:', error);
     return false;
   }
 }

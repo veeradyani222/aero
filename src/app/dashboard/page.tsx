@@ -101,7 +101,6 @@ function Page(): React.ReactElement {
   // Get total citations count using the same hook as citations page
   const { totalCitations: totalCitationsFromHook } = useTotalCitations({ brandId: selectedBrand?.id });
 
-  // Optional Cognee recommendations — only when Firestore has none; falls back to recommendationsData
   const { recommendations: cogneeRecommendations } = useCogneeRecommendations({
     brandId: selectedBrandId,
     brandName: selectedBrand?.companyName,

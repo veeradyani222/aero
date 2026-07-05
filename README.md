@@ -279,9 +279,9 @@ GEMINI_API_KEY=your_gemini_api_key_here
 PERPLEXITY_API_KEY=your_perplexity_key_here
 ```
 
-### Cognee Cloud (Optional)
+### Cognee Cloud
 
-Aero includes an **optional** [Cognee Cloud](https://docs.cognee.ai/cognee-cloud/overview) integration for smarter AI recommendations. **Without these variables, Aero behaves exactly as before** — hardcoded and Firestore recommendations are unchanged.
+Aero uses [Cognee Cloud](https://docs.cognee.ai/cognee-cloud/overview) for knowledge-graph powered AI recommendations.
 
 1. Sign up at [platform.cognee.ai](https://platform.cognee.ai)
 2. Create an API key and copy your tenant URL
@@ -292,7 +292,7 @@ COGNEE_CLOUD_URL=https://your-tenant.aws.cognee.ai
 COGNEE_API_KEY=your_cognee_api_key_here
 ```
 
-Integration code lives under `src/lib/cognee/` and `src/app/api/cognee/`. After query processing, brand context is synced to Cognee in the background (non-blocking). The dashboard uses Cognee recommendations only when Firestore has none and Cognee returns results.
+Integration code lives under `src/lib/cognee/` and `src/app/api/cognee/`. After query processing, brand context is synced to Cognee. The dashboard surfaces Cognee recommendations alongside Firestore data.
 
 ### Provider Configuration Architecture
 

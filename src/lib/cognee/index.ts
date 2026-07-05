@@ -1,10 +1,3 @@
-/**
- * Cognee Cloud — optional knowledge-graph layer for Aero.
- *
- * Set COGNEE_CLOUD_URL + COGNEE_API_KEY to enable.
- * Without them, nothing in Aero changes.
- */
-
 export {
   cogneeAdd,
   cogneeCognify,

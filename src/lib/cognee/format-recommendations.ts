@@ -46,10 +46,6 @@ function toTitle(text: string): string {
   return `${firstSentence.slice(0, 77)}...`;
 }
 
-/**
- * Turn a Cognee search response into dashboard recommendation cards.
- * Returns an empty array when parsing fails — caller keeps existing fallbacks.
- */
 export function formatCogneeRecommendations(
   cogneeContent: string,
   brandName?: string

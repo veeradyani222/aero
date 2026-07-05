@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
   if (!brandId) {
     return NextResponse.json(
-      { error: 'brandId is required when Cognee is enabled' },
+      { error: 'brandId is required' },
       { status: 400 }
     );
   }
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
         configured: true,
         recommendations: [],
         source: 'cognee',
-        message: 'No Cognee results yet — using default recommendations',
+        message: 'No results found',
       });
     }
 
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
       source: recommendations.length > 0 ? 'cognee' : 'none',
     });
   } catch (error) {
-    console.warn('[Cognee] Recommendations route failed (falling back):', error);
+    console.warn('[Cognee] Recommendations route failed:', error);
     return NextResponse.json({
       configured: true,
       recommendations: [],

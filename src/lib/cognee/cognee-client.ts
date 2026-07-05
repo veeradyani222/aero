@@ -1,12 +1,3 @@
-/**
- * Optional Cognee Cloud REST client.
- *
- * When COGNEE_API_KEY / COGNEE_CLOUD_URL are unset, every method is a no-op
- * or returns null — the rest of Aero behaves exactly as before.
- *
- * @see https://docs.cognee.ai/cognee-cloud/overview
- */
-
 import type {
   CogneeAddRequest,
   CogneeCognifyRequest,
@@ -27,7 +18,6 @@ function getApiKey(): string | null {
   return process.env.COGNEE_API_KEY?.trim() || null;
 }
 
-/** True only when both env vars are present. Safe to call anywhere. */
 export function isCogneeConfigured(): boolean {
   return Boolean(getCloudUrl() && getApiKey());
 }
@@ -73,7 +63,7 @@ async function cogneeFetch<T>(
       return { content: text } as T;
     }
   } catch (error) {
-    console.warn('[Cognee] Request error (non-blocking):', error);
+    console.warn('[Cognee] Request error:', error);
     return null;
   }
 }
@@ -126,10 +116,6 @@ export async function cogneeCognify(payload: CogneeCognifyRequest): Promise<unkn
   });
 }
 
-/**
- * One-shot ingest + cognify via the remember endpoint (multipart form).
- * Falls back to add + cognify if remember is unavailable.
- */
 export async function cogneeRemember(datasetName: string, content: string): Promise<boolean> {
   const baseUrl = getCloudUrl();
   const apiKey = getApiKey();
@@ -150,7 +136,7 @@ export async function cogneeRemember(datasetName: string, content: string): Prom
       return true;
     }
   } catch {
-    // Fall through to add + cognify
+    // remember endpoint unavailable
   }
 
   const added = await cogneeAdd({ data: content, datasetName });
@@ -193,7 +179,6 @@ function extractSearchContent(raw: unknown): string {
   return '';
 }
 
-/** Semantic search over a brand dataset. Returns null when Cognee is off or fails. */
 export async function cogneeSearch(
   datasetName: string,
   query: string,

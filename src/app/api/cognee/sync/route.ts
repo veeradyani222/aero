@@ -7,7 +7,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       configured: false,
       synced: false,
-      message: 'Cognee is not configured — no sync performed',
     });
   }
 
@@ -29,7 +28,7 @@ export async function POST(request: NextRequest) {
       dataset: `aero-brand-${body.brandId.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
     });
   } catch (error) {
-    console.warn('[Cognee] Sync route failed (non-blocking):', error);
+    console.warn('[Cognee] Sync route failed:', error);
     return NextResponse.json({
       configured: true,
       synced: false,
