@@ -19,6 +19,7 @@ interface ProcessQueriesButtonProps {
   onProgress?: (results: any[]) => void; // New callback for real-time updates
   onStart?: () => void; // New callback for when processing starts
   onQueryStart?: (query: string) => void; // New callback for when individual query processing starts
+  autoStart?: boolean;
   className?: string;
   variant?: 'primary' | 'secondary' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
@@ -30,6 +31,7 @@ export default function ProcessQueriesButton({
   onProgress,
   onStart,
   onQueryStart,
+  autoStart = false,
   className = '',
   variant = 'primary',
   size = 'md',
@@ -44,6 +46,7 @@ export default function ProcessQueriesButton({
 
   // Add ref to track cancellation
   const cancelledRef = useRef(false);
+  const autoStartTriggeredRef = useRef(false);
 
   const handleProcessQueries = async () => {
     if (!user?.uid) {
@@ -539,6 +542,22 @@ export default function ProcessQueriesButton({
     cancelledRef.current = true;
     setMessage('Stopping processing...');
   };
+
+  React.useEffect(() => {
+    if (!autoStart || autoStartTriggeredRef.current || processing) {
+      return;
+    }
+
+    const targetBrandId = brandId || selectedBrand?.id;
+    const targetBrand = brands.find(b => b.id === targetBrandId);
+
+    if (!user?.uid || !targetBrand || (targetBrand.queries || []).length === 0) {
+      return;
+    }
+
+    autoStartTriggeredRef.current = true;
+    void handleProcessQueries();
+  }, [autoStart, brandId, brands, processing, selectedBrand?.id, user?.uid]);
 
   // Check if queries have been processed
   const getProcessedQueriesCount = () => {

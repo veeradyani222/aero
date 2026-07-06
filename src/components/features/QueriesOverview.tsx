@@ -28,6 +28,7 @@ interface QueriesOverviewProps {
   layout?: 'cards' | 'table'; // New prop for layout type
   maxQueries?: number;
   showProcessButton?: boolean;
+  autoStartProcess?: boolean;
   showSearch?: boolean;
   showEyeIcons?: boolean;
   showCategoryFilter?: boolean; // New prop
@@ -42,6 +43,7 @@ export default function QueriesOverview({
   layout = 'cards',
   maxQueries = 5,
   showProcessButton = true,
+  autoStartProcess = false,
   showSearch = false,
   showEyeIcons = true,
   showCategoryFilter = true,
@@ -326,6 +328,7 @@ export default function QueriesOverview({
             {showProcessButton && (
               <ProcessQueriesButton 
                 brandId={brand.id}
+                autoStart={autoStartProcess}
                 variant="ghost"
                 size="sm"
                 onStart={() => {

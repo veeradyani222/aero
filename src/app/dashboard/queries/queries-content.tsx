@@ -1,10 +1,14 @@
 'use client'
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useBrandContext } from '@/context/BrandContext';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import QueriesOverview from '@/components/features/QueriesOverview';
 import { useAuthContext } from '@/context/AuthContext';
+import {
+  clearPendingQueryProcessingBrandId,
+  getPendingQueryProcessingBrandId,
+} from '@/lib/queries-auto-start';
 import { doc, updateDoc, arrayUnion, getFirestore } from 'firebase/firestore';
 import firebase_app from '@/firebase/config';
 import WebLogo from '@/components/shared/WebLogo';
@@ -1123,6 +1127,7 @@ export default function QueriesContent(): React.ReactElement {
   const { user } = useAuthContext();
   const [showResults, setShowResults] = useState(false);
   const [selectedQuery, setSelectedQuery] = useState<any>(null);
+  const [autoStartProcess, setAutoStartProcess] = useState(false);
   
   
   // Add Query Modal State
@@ -1130,6 +1135,26 @@ export default function QueriesContent(): React.ReactElement {
   const [newQuery, setNewQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'Awareness' | 'Interest' | 'Consideration' | 'Purchase'>('Awareness');
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const pendingBrandId = getPendingQueryProcessingBrandId();
+
+    if (!pendingBrandId) {
+      return;
+    }
+
+    if (!selectedBrand?.id) {
+      return;
+    }
+
+    if (pendingBrandId !== selectedBrand.id) {
+      clearPendingQueryProcessingBrandId();
+      return;
+    }
+
+    setAutoStartProcess(true);
+    clearPendingQueryProcessingBrandId();
+  }, [selectedBrand?.id]);
 
   // Add Query Modal Handlers
   const handleAddQuery = () => {
@@ -1276,6 +1301,7 @@ export default function QueriesContent(): React.ReactElement {
           layout="table"
           showSearch={false} // Temporarily commented out search functionality
           showProcessButton={true}
+          autoStartProcess={autoStartProcess}
           showEyeIcons={true}
           onQueryClick={(query, result) => {
             if (result) {

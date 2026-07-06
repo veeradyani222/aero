@@ -11,6 +11,7 @@ import { useAuthContext } from '@/context/AuthContext';
 import { generateRealisticAnalytics } from '@/utils/generateBrandData';
 import { useBrandContext } from '@/context/BrandContext';
 import { useToast } from '@/context/ToastContext';
+import { setPendingQueryProcessingBrandId } from '@/lib/queries-auto-start';
 
 interface GeneratedQuery {
   keyword: string;
@@ -164,7 +165,7 @@ Output format (return ONLY a valid JSON array. Do not use Markdown code fences o
     try {
       await executeQuery(
         prompt,
-        ['chatgptsearch', 'google-gemini'],
+        ['google-gemini'],
         'high',
         'query-generation'
       );
@@ -196,7 +197,7 @@ Output format (return ONLY a valid JSON array. Do not use Markdown code fences o
         } else if (aiResponse && typeof aiResponse === 'object') {
           console.log('🔄 Object response, checking structure...');
           
-          // Check if response has a content field (OpenAI format)
+          // Check if response has a content field from a provider response
           if (aiResponse.content && typeof aiResponse.content === 'string') {
             console.log('📄 Found content field, parsing...');
             parsedQueries = parseGeneratedQueries(aiResponse.content);
@@ -379,6 +380,9 @@ Output format (return ONLY a valid JSON array. Do not use Markdown code fences o
       console.log('🧹 Clearing local storage and session storage...');
       localStorage.clear();
       sessionStorage.clear();
+
+      // Mark the next queries page visit so it can auto-start the first processing run.
+      setPendingQueryProcessingBrandId(brandId);
       
       // Refresh brands in context and set the new brand as selected
       console.log('🔄 Refreshing brand context...');

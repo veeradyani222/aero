@@ -1,24 +1,32 @@
+import { GoogleGenAI } from '@google/genai';
 import { BaseAPIProvider } from './base-provider';
 import { APIResponse, ProviderConfig, GeminiRequest } from './types';
+import {
+  getGeminiModelCandidates,
+  getGeminiResponseText,
+  isGeminiQuotaError,
+  isRetryableGeminiError,
+  markGeminiModelExhausted,
+  nextAvailableGeminiModel,
+} from './gemini-retry-policy';
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export class GeminiProvider extends BaseAPIProvider {
-  private baseUrl: string;
+  private client: GoogleGenAI;
 
   constructor(config: ProviderConfig) {
     super('google-gemini', 'ai', config);
-    this.baseUrl = config.baseUrl || 'https://generativelanguage.googleapis.com/v1beta';
+    this.client = new GoogleGenAI({ apiKey: config.apiKey });
   }
 
   async execute(request: GeminiRequest & { model?: string }): Promise<APIResponse> {
     const startTime = Date.now();
     const requestId = `gemini-${Date.now()}`;
-    const modelCandidates = (
-      process.env.GEMINI_MODELS ||
-      'gemini-2.5-flash,gemini-2.0-flash,gemini-flash-latest'
-    )
-      .split(',')
-      .map((model) => model.trim())
-      .filter(Boolean);
+    const modelCandidates = getGeminiModelCandidates();
+    const attemptedModels: string[] = [];
 
     try {
       if (!this.config.apiKey || this.config.apiKey.trim() === '') {
@@ -34,36 +42,56 @@ export class GeminiProvider extends BaseAPIProvider {
       let rawResponse: any = null;
       let modelUsed = '';
       let lastError: Error | null = null;
+      const maxAttempts = modelCandidates.length;
 
-      for (const model of modelCandidates) {
-        const url = `${this.baseUrl}/models/${model}:generateContent?key=${this.config.apiKey}`;
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        const model = nextAvailableGeminiModel(modelCandidates, new Set(attemptedModels));
 
-        console.log('Gemini API Request:', {
-          url: url.replace(this.config.apiKey, '[API_KEY]'),
+        if (!model) {
+          throw lastError || new Error('All Gemini model candidates are marked as quota exhausted');
+        }
+
+        attemptedModels.push(model);
+
+        console.log('Gemini SDK Request:', {
           model,
           contentsLength: request.contents?.length,
-          webSearchEnabled: true,
+          toolsEnabled: Boolean(request.tools?.length),
         });
 
         try {
-          rawResponse = await this.retryRequest(async () => {
-            return await this.makeRequest(url, {
-              method: 'POST',
-              body: JSON.stringify({
-                contents: request.contents,
-                tools: request.tools || [{ google_search: {} }],
-                generationConfig: request.generationConfig,
-              }),
-            });
+          rawResponse = await this.client.models.generateContent({
+            model,
+            contents: request.contents,
+            config: {
+              ...(request.generationConfig || {}),
+              tools: request.tools || [{ googleSearch: {} }],
+            } as any,
           });
           modelUsed = model;
           break;
         } catch (error) {
           lastError = error as Error;
+
+          if (isGeminiQuotaError(error)) {
+            markGeminiModelExhausted(model);
+          }
+
+          const retryable = isRetryableGeminiError(error);
+          const canRetry = retryable && attempt < maxAttempts - 1;
+
           console.warn('Gemini model failed, trying fallback if available:', {
             model,
+            retryable,
             error: lastError.message,
           });
+
+          if (!canRetry) {
+            throw error;
+          }
+
+          const delayMs = (700 * (2 ** attempt)) + Math.floor(Math.random() * 300);
+          await wait(delayMs);
         }
       }
 
@@ -71,15 +99,16 @@ export class GeminiProvider extends BaseAPIProvider {
         throw lastError || new Error('All Gemini model fallbacks failed');
       }
 
-      console.log('Gemini API Response received:', {
-        hasCandidates: !!rawResponse.candidates,
+      console.log('Gemini SDK Response received:', {
+        hasText: Boolean(getGeminiResponseText(rawResponse)),
+        hasCandidates: Boolean(rawResponse.candidates),
         candidatesLength: rawResponse.candidates?.length,
         modelUsed,
       });
 
       const transformedData = this.transformResponse(rawResponse);
       transformedData.modelUsed = modelUsed;
-      transformedData.modelFallbacksTried = modelCandidates;
+      transformedData.modelFallbacksTried = attemptedModels;
 
       const responseTime = Date.now() - startTime;
       const cost = this.calculateCost();
@@ -97,10 +126,11 @@ export class GeminiProvider extends BaseAPIProvider {
       const responseTime = Date.now() - startTime;
       const errorMessage = (error as Error).message;
 
-      console.error('Gemini API Error:', {
+      console.error('Gemini SDK Error:', {
         error: errorMessage,
         responseTime,
         apiKeyConfigured: !!this.config.apiKey && this.config.apiKey.trim() !== '',
+        attemptedModels,
       });
 
       return {
@@ -127,13 +157,15 @@ export class GeminiProvider extends BaseAPIProvider {
 
   transformResponse(rawResponse: any): any {
     const candidate = rawResponse.candidates?.[0];
+
     return {
-      content: candidate?.content?.parts?.[0]?.text || '',
+      content: getGeminiResponseText(rawResponse),
       finishReason: candidate?.finishReason,
       safetyRatings: candidate?.safetyRatings,
       citationMetadata: candidate?.citationMetadata,
       groundingMetadata: candidate?.groundingMetadata,
       webSearchEnabled: true,
+      rawResponse,
     };
   }
 
@@ -156,4 +188,3 @@ export class GeminiProvider extends BaseAPIProvider {
     }
   }
 }
-

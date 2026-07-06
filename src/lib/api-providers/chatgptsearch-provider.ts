@@ -1,5 +1,6 @@
 import { BaseAPIProvider } from './base-provider';
 import { APIResponse, ProviderConfig, ChatGPTSearchRequest } from './types';
+import { shouldStopOpenAIFallbacks } from './openai-retry-policy';
 import OpenAI from 'openai';
 
 export class ChatGPTSearchProvider extends BaseAPIProvider {
@@ -54,6 +55,9 @@ export class ChatGPTSearchProvider extends BaseAPIProvider {
           break;
         } catch (error) {
           lastError = error as Error;
+          if (shouldStopOpenAIFallbacks(error)) {
+            throw error;
+          }
           console.warn('ChatGPT Search model failed, trying fallback if available:', {
             model,
             error: lastError.message,
@@ -76,6 +80,9 @@ export class ChatGPTSearchProvider extends BaseAPIProvider {
             break;
           } catch (error) {
             lastError = error as Error;
+            if (shouldStopOpenAIFallbacks(error)) {
+              throw error;
+            }
             console.warn('ChatGPT no-search fallback model failed, trying next if available:', {
               model,
               error: lastError.message,

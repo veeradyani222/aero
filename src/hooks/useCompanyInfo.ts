@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { CompanyInfo } from '@/lib/get-company-info';
+import { readCompanyInfoResponse } from '@/lib/company-info-response';
+export { readCompanyInfoResponse } from '@/lib/company-info-response';
 
 interface CompanyInfoState {
   loading: boolean;
@@ -44,13 +46,9 @@ export function useCompanyInfo(): UseCompanyInfoReturn {
         body: JSON.stringify({ domain }),
       });
 
-      const data = await response.json();
+      const data = await readCompanyInfoResponse(response);
       
       console.log('📄 API Response:', data);
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to get company info');
-      }
 
       if (!data.success) {
         throw new Error(data.error || 'Company info fetch was not successful');

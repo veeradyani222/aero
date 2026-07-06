@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ProviderManager } from '@/lib/api-providers/provider-manager';
 import { APIRequest } from '@/lib/api-providers/types';
+import { createFallbackCompanyInfo, getFallbackCompanyName, normalizeCompanyDomain } from '@/lib/company-info-fallback';
 import { getDomainMetadata } from '@/lib/domain-metadata';
 import { z } from 'zod';
 
@@ -22,10 +23,7 @@ const CompanyInfoSchema = z.object({
 type CompanyInfo = z.infer<typeof CompanyInfoSchema>;
 
 function cleanDomain(domain: string): string {
-  let cleanedDomain = domain.replace(/^https?:\/\//, '');
-  cleanedDomain = cleanedDomain.replace(/^www\./, '');
-  cleanedDomain = cleanedDomain.replace(/\/$/, '');
-  return cleanedDomain;
+  return normalizeCompanyDomain(domain);
 }
 
 function generateCompanyInfoPrompt(domain: string, websiteData?: { title?: string; description?: string; siteName?: string }): string {
@@ -88,7 +86,7 @@ function parseAIResponse(response: string, domain: string): CompanyInfo {
     
     // Validate and structure the response
     const result: CompanyInfo = {
-      companyName: parsed.companyName || domain.split('.')[0].charAt(0).toUpperCase() + domain.split('.')[0].slice(1),
+      companyName: parsed.companyName || getFallbackCompanyName(domain),
       shortDescription: parsed.shortDescription || `A company operating at ${domain}`,
       productsAndServices: Array.isArray(parsed.productsAndServices) ? parsed.productsAndServices : [],
       keywords: Array.isArray(parsed.keywords) ? parsed.keywords : [],
@@ -103,7 +101,7 @@ function parseAIResponse(response: string, domain: string): CompanyInfo {
     
     // Return fallback structure if parsing fails
     return {
-      companyName: domain.split('.')[0].charAt(0).toUpperCase() + domain.split('.')[0].slice(1),
+      companyName: getFallbackCompanyName(domain),
       shortDescription: `A company operating at ${domain}. Unable to fetch detailed information.`,
       productsAndServices: [],
       keywords: [],
@@ -148,11 +146,11 @@ export async function POST(request: NextRequest) {
     // Initialize provider manager
     const providerManager = new ProviderManager();
     
-    // Create API request with OpenAI Search as primary and Gemini as fallback.
+    // Create API request with Gemini only for brand-building company info.
     const apiRequest: APIRequest = {
       id: `company-info-${Date.now()}`,
       prompt: prompt,
-      providers: ['chatgptsearch', 'google-gemini'],
+      providers: ['google-gemini'],
       priority: 'medium',
       userId: 'system', // Using system for non-authenticated requests
       createdAt: new Date(),
@@ -178,7 +176,30 @@ export async function POST(request: NextRequest) {
     
     if (successfulResults.length === 0) {
       console.error('❌ All providers failed');
-      throw new Error('All AI providers failed to analyze the domain');
+      const companyInfo = createFallbackCompanyInfo(domain);
+
+      return NextResponse.json({
+        success: true,
+        data: companyInfo,
+        metadata: {
+          timestamp: new Date().toISOString(),
+          source: 'fallback',
+          degraded: true,
+          warning: 'AI providers were unavailable, so fallback company information was returned.',
+          websiteMetadata: websiteMetadata ? {
+            title: websiteMetadata.title,
+            description: websiteMetadata.description,
+            siteName: websiteMetadata.siteName,
+            hasRealData: true
+          } : { hasRealData: false },
+          providersUsed: result.results.map(r => ({
+            provider: r.providerId,
+            status: r.status,
+            responseTime: r.responseTime,
+            error: r.error
+          }))
+        }
+      });
     }
 
     // Use the first successful result in provider priority order.
@@ -186,7 +207,20 @@ export async function POST(request: NextRequest) {
     console.log('✅ Using result from provider:', primaryResult.providerId);
     
     if (!primaryResult.data?.content) {
-      throw new Error('No content received from AI provider');
+      const companyInfo = createFallbackCompanyInfo(domain);
+
+      return NextResponse.json({
+        success: true,
+        data: companyInfo,
+        metadata: {
+          timestamp: new Date().toISOString(),
+          source: primaryResult.providerId,
+          degraded: true,
+          warning: 'AI provider returned no content, so fallback company information was returned.',
+          responseTime: primaryResult.responseTime,
+          cost: primaryResult.cost,
+        }
+      });
     }
 
     // Parse the AI response
