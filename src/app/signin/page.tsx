@@ -91,7 +91,9 @@ function Page(): React.ReactElement {
     <div className="flex flex-col items-center justify-center min-h-screen bg-black font-sans">
       <div className="w-full max-w-sm px-6">
         <div className="text-center mb-10">
-          <span className="text-5xl  font-bold tracking-tighter text-white">AERO</span>
+          <a href="/" className="text-5xl font-bold tracking-tighter text-white hover:opacity-80 transition-opacity">
+            AERO
+          </a>
         </div>
 
         <form onSubmit={handleForm} className="bg-white/5 border border-white/10 p-8 ">
@@ -200,5 +202,3 @@ function Page(): React.ReactElement {
 }
 
 export default Page;
-
-
